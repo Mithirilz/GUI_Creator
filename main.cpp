@@ -179,7 +179,7 @@ struct GUI{
     std::vector<Button> button_list;
     std::vector<Textbox> textbox_list;
 
-    const void instantiate_button(Vector2 mouse_pos){
+    void instantiate_button(Vector2 mouse_pos){
         mouse_pos.x -= 100.0/2;
         mouse_pos.y -= 50.0/2;
 
