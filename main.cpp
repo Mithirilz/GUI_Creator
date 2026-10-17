@@ -170,8 +170,8 @@ struct Slider{
             circle_center.x = line_end.x;
         }
 
-        DrawLine(line_start.x, line_start.y, line_end.x, line_end.y, line_colour);
-        DrawCircle(circle_center.x, circle_center.y, circle_radius, circle_colour);
+        DrawLine(static_cast<int>(line_start.x), static_cast<int>(line_start.y), static_cast<int>(line_end.x), static_cast<int>(line_end.y), line_colour);
+        DrawCircle(static_cast<int>(circle_center.x), static_cast<int>(circle_center.y), circle_radius, circle_colour);
     }
 };
 
@@ -226,7 +226,6 @@ int main(){
     button_pos.y = static_cast<float>(window_height)/2 - static_cast<float>(button_height)/2;
 
     Button button1{button_pos, button_width, button_height, RED};
-    
     Slider slider_entity{Vector2{button_pos.x, button_pos.y + 100}, Vector2{button_pos.x + button_width, button_pos.y +100}, Vector2{button_pos.x, button_pos.y + 100}, 8, BLUE, RAYWHITE};
 
     Vector2 mouse_pos;
