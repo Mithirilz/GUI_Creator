@@ -175,9 +175,21 @@ struct Slider{
     }
 };
 
+struct Element_configuration{
+    Vector2 pos;
+    Vector2 size;
+    Color block_colour;
+
+    std::string pos_input_x;
+    std::string pos_input_y;
+    std::string size_input_x;
+    std::string size_input_y;
+};
+
 struct GUI{
     std::vector<Button> button_list;
     std::vector<Textbox> textbox_list;
+    Element_configuration control_block;
 
     void instantiate_button(Vector2 mouse_pos){
         mouse_pos.x -= 100.0/2;
