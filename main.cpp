@@ -94,6 +94,10 @@ struct Textbox{
         }
     }
 
+    std::string get_text(){
+        return text;
+    }
+
     void draw(const Vector2 mouse_pos, const int& key_pressed){
         if(!is_typing){
             if(is_left_clicked(mouse_pos)){
