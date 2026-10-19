@@ -184,12 +184,16 @@ struct Element_configuration{
     std::string pos_input_y;
     std::string size_input_x;
     std::string size_input_y;
+
+    void draw(){
+        DrawRectangle(pos.x, pos.y, size.x, size.y, block_colour);
+    }
 };
 
 struct GUI{
     std::vector<Button> button_list;
     std::vector<Textbox> textbox_list;
-    Element_configuration control_block;
+    Element_configuration control_block{Vector2{0, 570}, Vector2{150, 150}, RAYWHITE};
 
     void instantiate_button(Vector2 mouse_pos){
         mouse_pos.x -= 100.0/2;
@@ -206,6 +210,8 @@ struct GUI{
     }
 
     void draw_all(const Vector2 mouse_pos){
+        control_block.draw();
+
         if(!button_list.empty()){
             for(int i = 0; i < button_list.size(); i++){
                 button_list[i].draw(mouse_pos);
