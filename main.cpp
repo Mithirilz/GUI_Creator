@@ -14,7 +14,7 @@ struct Button{
     bool is_left_clicked(const Vector2& mouse_pos){
         Rectangle button{pos.x, pos.y, static_cast<float>(width), static_cast<float>(height)};
 
-        if(CheckCollisionPointRec(mouse_pos, button) && IsMouseButtonDown(MOUSE_LEFT_BUTTON)){
+        if(CheckCollisionPointRec(mouse_pos, button)){
             return true;
         } else{
             return false;
@@ -31,11 +31,13 @@ struct Button{
         }
     }
 
-    void draw(Vector2 mouse_pos){
-        if(is_left_clicked(mouse_pos)){
-            colour = GREEN;
-        } else{
-            colour = RED;
+    void update(const Vector2& mouse_pos, const bool& is_clicked){
+        if(is_clicked){
+            if(is_left_clicked(mouse_pos)){
+                colour = GREEN;
+            } else{
+                colour = RED;
+            }
         }
 
         if(!is_dragged){
@@ -53,7 +55,9 @@ struct Button{
         if(IsMouseButtonReleased(MOUSE_BUTTON_RIGHT)){
             is_dragged = false;
         }
+    }
 
+    void draw(){
         DrawRectangle(static_cast<int>(pos.x), static_cast<int>(pos.y), width, height, colour);
     }
 
@@ -214,7 +218,8 @@ struct GUI{
 
         if(!button_list.empty()){
             for(int i = 0; i < button_list.size(); i++){
-                button_list[i].draw(mouse_pos);
+                button_list[i].update(mouse_pos, true);
+                button_list[i].draw();
             }
         }
 
@@ -262,7 +267,7 @@ int main(){
         BeginDrawing();
             ClearBackground(BLACK);
             GUI_manager.draw_all(mouse_pos);
-            button1.draw(mouse_pos);
+            button1.draw();
             slider_entity.draw(mouse_pos);
         EndDrawing();
     }
