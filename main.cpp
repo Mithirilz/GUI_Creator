@@ -2,6 +2,12 @@
 #include <string>
 #include <vector>
 
+enum Click_States{
+    no_click = 0,
+    left_click = 1,
+    right_click = 2
+};
+
 struct Button{
     Vector2 pos;
     const int width;
@@ -9,6 +15,7 @@ struct Button{
     Color colour;
 
     bool is_dragged = false;
+    bool is_clicked = false;
     Vector2 mouse_offset;
 
     bool is_left_clicked(const Vector2& mouse_pos){
@@ -31,17 +38,15 @@ struct Button{
         }
     }
 
-    void update(const Vector2& mouse_pos, const bool& is_clicked){
-        if(is_clicked){
-            if(is_left_clicked(mouse_pos)){
-                colour = GREEN;
-            } else{
-                colour = RED;
-            }
+    void update(const Vector2& mouse_pos, Click_States click_type){
+        if(click_type == left_click){
+            colour = GREEN;
+        } else if(click_type == no_click){
+            colour = RED;
         }
 
         if(!is_dragged){
-            if(is_right_clicked(mouse_pos)){
+            if(click_type == right_click){
                 is_dragged = true;
 
                 mouse_offset.x = mouse_pos.x - pos.x;
@@ -198,6 +203,7 @@ struct GUI{
     std::vector<Button> button_list;
     std::vector<Textbox> textbox_list;
     Element_configuration control_block{Vector2{0, 570}, Vector2{150, 150}, RAYWHITE};
+    Click_States click_type;
 
     void instantiate_button(Vector2 mouse_pos){
         mouse_pos.x -= 100.0/2;
@@ -216,9 +222,48 @@ struct GUI{
     void draw_all(const Vector2 mouse_pos){
         control_block.draw();
 
+        if(IsMouseButtonDown(MOUSE_BUTTON_LEFT)){
+            for(int i = 0; i < button_list.size(); i++){
+                Button& current_button = button_list[i];
+
+                bool is_clicked= CheckCollisionPointRec(
+                    mouse_pos, 
+                    Rectangle{
+                        current_button.pos.x,
+                        current_button.pos.y,
+                        static_cast<float>(current_button.width),
+                        static_cast<float>(current_button.height)
+                    }
+                );
+
+                if(is_clicked){
+                    current_button.update(mouse_pos, left_click);
+                } else{
+                    current_button.update(mouse_pos, no_click);
+                }
+            }
+        } else if(IsMouseButtonDown(MOUSE_BUTTON_RIGHT)){
+            for(int i = 0; i < button_list.size(); i++){
+                Button& current_button = button_list[i];
+
+                bool is_clicked = CheckCollisionPointRec(
+                    mouse_pos, 
+                    Rectangle{
+                        current_button.pos.x,
+                        current_button.pos.y,
+                        static_cast<float>(current_button.width),
+                        static_cast<float>(current_button.height)
+                    }
+                );
+
+                if(is_clicked){
+                    current_button.update(mouse_pos, right_click);
+                };
+            }
+        }
+
         if(!button_list.empty()){
             for(int i = 0; i < button_list.size(); i++){
-                button_list[i].update(mouse_pos, true);
                 button_list[i].draw();
             }
         }
