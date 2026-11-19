@@ -18,26 +18,6 @@ struct Button{
     bool is_clicked = false;
     Vector2 mouse_offset;
 
-    bool is_left_clicked(const Vector2& mouse_pos){
-        Rectangle button{pos.x, pos.y, static_cast<float>(width), static_cast<float>(height)};
-
-        if(CheckCollisionPointRec(mouse_pos, button)){
-            return true;
-        } else{
-            return false;
-        }
-    }
-
-    bool is_right_clicked(const Vector2& mouse_pos){
-        Rectangle button{pos.x, pos.y, static_cast<float>(width), static_cast<float>(height)};
-
-        if(CheckCollisionPointRec(mouse_pos, button) && IsMouseButtonDown(MOUSE_RIGHT_BUTTON)){
-            return true;
-        } else{
-            return false;
-        }
-    }
-
     void update(const Vector2& mouse_pos, Click_States click_type){
         if(click_type == left_click){
             colour = GREEN;
@@ -64,6 +44,7 @@ struct Button{
 
     void draw(){
         DrawRectangle(static_cast<int>(pos.x), static_cast<int>(pos.y), width, height, colour);
+        colour = RED;
     }
 
 };
@@ -238,8 +219,6 @@ struct GUI{
 
                 if(is_clicked){
                     current_button.update(mouse_pos, left_click);
-                } else{
-                    current_button.update(mouse_pos, no_click);
                 }
             }
         } else if(IsMouseButtonDown(MOUSE_BUTTON_RIGHT)){
