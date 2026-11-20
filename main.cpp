@@ -5,7 +5,8 @@
 enum Click_States{
     no_click = 0,
     left_click = 1,
-    right_click = 2
+    right_click = 2,
+    key_click = 3
 };
 
 struct Button{
@@ -14,31 +15,41 @@ struct Button{
     const int height;
     Color colour;
 
-    bool is_dragged = false;
-    bool is_clicked = false;
     Vector2 mouse_offset;
+    bool is_dragged = false;
+
+    void set_colour_green(){}
+    
+    void drag_behaviour(const Vector2& mouse_pos){
+        if(!is_dragged){
+            is_dragged = true;
+
+            mouse_offset.x = mouse_pos.x - pos.x;
+            mouse_offset.y = mouse_pos.y - pos.y;
+            return;
+        }
+
+        if(is_dragged){
+            pos.x = mouse_pos.x - mouse_offset.x;
+            pos.y = mouse_pos.y - mouse_offset.y;
+            return;
+        }
+    }
 
     void update(const Vector2& mouse_pos, Click_States click_type){
         if(click_type == left_click){
             colour = GREEN;
-        } else if(click_type == no_click){
-            colour = RED;
+            return;
         }
 
-        if(!is_dragged){
-            if(click_type == right_click){
-                is_dragged = true;
-
-                mouse_offset.x = mouse_pos.x - pos.x;
-                mouse_offset.y = mouse_pos.y - pos.y;
-            }
-        } else if(is_dragged){
-            pos.x = mouse_pos.x - mouse_offset.x;
-            pos.y = mouse_pos.y - mouse_offset.y;
+        if(click_type == right_click){
+            drag_behaviour(mouse_pos);
         }
+        
 
         if(IsMouseButtonReleased(MOUSE_BUTTON_RIGHT)){
             is_dragged = false;
+            return;
         }
     }
 
@@ -64,35 +75,14 @@ struct Textbox{
     float flicker_brightness = 1.0;
     int counter = 0;
 
-    bool is_left_clicked(const Vector2& mouse_pos){
-        Rectangle button{box_pos.x, box_pos.y, static_cast<float>(box_width), static_cast<float>(box_height)};
-
-        if(CheckCollisionPointRec(mouse_pos, button) && IsMouseButtonPressed(MOUSE_LEFT_BUTTON)){
-            return true;
-        } else{
-            return false;
-        }
-    }
-
-    bool is_right_clicked(const Vector2& mouse_pos){
-        Rectangle button{box_pos.x, box_pos.y, static_cast<float>(box_width), static_cast<float>(box_height)};
-
-        if(CheckCollisionPointRec(mouse_pos, button) && IsMouseButtonDown(MOUSE_RIGHT_BUTTON)){
-            return true;
-        } else{
-            return false;
-        }
-    }
-
-    void draw(const Vector2 mouse_pos, const int& key_pressed){
+    void update(const Click_States& click_type, const int key_pressed){
         if(!is_typing){
-            if(is_left_clicked(mouse_pos)){
+            if(click_type == left_click){
                 is_typing = true;
                 box_colour = Fade(RAYWHITE, 0.5f);
             }
-        } else{ 
-            flicker_colour = ColorAlpha(WHITE, 1 - flicker_brightness);
-
+        
+        } else if(is_typing){
             if(counter != 1500){
                 counter++;
             } else{
@@ -100,24 +90,34 @@ struct Textbox{
                 flicker_brightness = 1 - flicker_brightness;
             }
 
-            if(is_left_clicked(mouse_pos)){
+            flicker_colour = ColorAlpha(WHITE, 1 - flicker_brightness);
+
+            if(click_type == left_click){
                 is_typing = false;
                 box_colour = RAYWHITE;
                 flicker_colour = ColorAlpha(WHITE, 0);
-            } else if(static_cast<char>(key_pressed) != 0){
+            } else if(key_pressed != 0){
                 text.push_back(static_cast<char>(key_pressed));
             } else if(IsKeyPressed(KEY_BACKSPACE) && !text.empty()){
                 text.pop_back();
             }
         }
+    }
 
+    void draw(){
         const int text_width = MeasureText(text.c_str(), box_height/2);
         const int start_of_text_x = static_cast<int>(box_pos.x) + (box_width - text_width)/2;
         const int start_of_text_y = static_cast<int>(box_pos.y) + 13;
 
         DrawRectangle(static_cast<int>(box_pos.x), static_cast<int>(box_pos.y), static_cast<int>(box_width), static_cast<int>(box_height), box_colour);
         DrawText(text.c_str(), start_of_text_x, start_of_text_y, box_height/2, text_colour);
-        DrawLine((start_of_text_x + text_width) + 5, start_of_text_y, (start_of_text_x + text_width) + 5, start_of_text_y + box_height/2, flicker_colour);
+        DrawLine(
+            start_of_text_x + text_width + 5,
+            start_of_text_y,
+            start_of_text_x + text_width + 5,
+            start_of_text_y + box_height/2,
+            flicker_colour
+        );
     }
 };
 
@@ -146,6 +146,7 @@ struct Slider{
             if(is_left_clicked(mouse_pos)){
                 is_sliding = true;
             }
+
         } else{
             circle_center.x += (mouse_pos.x - circle_center.x);
         }
@@ -184,7 +185,6 @@ struct GUI{
     std::vector<Button> button_list;
     std::vector<Textbox> textbox_list;
     Element_configuration control_block{Vector2{0, 570}, Vector2{150, 150}, RAYWHITE};
-    Click_States click_type;
 
     void instantiate_button(Vector2 mouse_pos){
         mouse_pos.x -= 100.0/2;
@@ -200,47 +200,63 @@ struct GUI{
         textbox_list.emplace_back(mouse_pos, 100, 50, RAYWHITE, ORANGE);
     }
 
-    void draw_all(const Vector2 mouse_pos){
-        control_block.draw();
+    void check_for_collisions(const Vector2& mouse_pos, const Click_States& click_type){
+        for(int i = 0; i < button_list.size(); i++){
+            Button& current_button = button_list[i];
 
-        if(IsMouseButtonDown(MOUSE_BUTTON_LEFT)){
-            for(int i = 0; i < button_list.size(); i++){
-                Button& current_button = button_list[i];
-
-                bool is_clicked= CheckCollisionPointRec(
-                    mouse_pos, 
-                    Rectangle{
-                        current_button.pos.x,
-                        current_button.pos.y,
-                        static_cast<float>(current_button.width),
-                        static_cast<float>(current_button.height)
-                    }
-                );
-
-                if(is_clicked){
-                    current_button.update(mouse_pos, left_click);
+            bool is_clicked= CheckCollisionPointRec(
+                mouse_pos, 
+                Rectangle{
+                    current_button.pos.x,
+                    current_button.pos.y,
+                    static_cast<float>(current_button.width),
+                    static_cast<float>(current_button.height)
                 }
-            }
-        } else if(IsMouseButtonDown(MOUSE_BUTTON_RIGHT)){
-            for(int i = 0; i < button_list.size(); i++){
-                Button& current_button = button_list[i];
+            );
 
-                bool is_clicked = CheckCollisionPointRec(
-                    mouse_pos, 
-                    Rectangle{
-                        current_button.pos.x,
-                        current_button.pos.y,
-                        static_cast<float>(current_button.width),
-                        static_cast<float>(current_button.height)
-                    }
-                );
-
-                if(is_clicked){
-                    current_button.update(mouse_pos, right_click);
-                };
+            if(is_clicked){
+                current_button.update(mouse_pos, click_type);
             }
         }
 
+        for(int i = 0; i < textbox_list.size(); i++){
+            Textbox& current_text_box = textbox_list[i];
+
+            bool is_clicked= CheckCollisionPointRec(
+                mouse_pos, 
+                Rectangle{
+                    current_text_box.box_pos.x,
+                    current_text_box.box_pos.y,
+                    static_cast<float>(current_text_box.box_width),
+                    static_cast<float>(current_text_box.box_height)
+                }
+            );
+
+            if(is_clicked){
+                current_text_box.update(left_click, 0);
+                return;
+            }
+            
+            if(current_text_box.is_typing){
+                current_text_box.update(key_click, GetCharPressed());
+                return;
+            }
+        }
+    }
+
+    void update_all(const Vector2& mouse_pos){
+        if(IsMouseButtonDown(MOUSE_BUTTON_LEFT)){
+            check_for_collisions(mouse_pos, left_click);
+            return;
+        }
+        
+        if(IsMouseButtonDown(MOUSE_BUTTON_RIGHT)){
+            check_for_collisions(mouse_pos, right_click);
+            return;
+        } 
+    }
+
+    void draw_all(){
         if(!button_list.empty()){
             for(int i = 0; i < button_list.size(); i++){
                 button_list[i].draw();
@@ -248,10 +264,8 @@ struct GUI{
         }
 
         if(!textbox_list.empty()){ 
-            int key_pressed = GetCharPressed();
-
             for(int i = 0; i < textbox_list.size(); i++){
-                textbox_list[i].draw(mouse_pos, key_pressed);
+                textbox_list[i].draw();
             }
         }
     }
@@ -264,6 +278,7 @@ int main(){
     const int window_height = 720;
     InitWindow(window_width, window_height, "GUI_WIZARD");
     ShowCursor();
+
     GUI GUI_manager; 
 
     Vector2 button_pos;
@@ -272,7 +287,7 @@ int main(){
     button_pos.x = static_cast<float>(window_width)/2 - static_cast<float>(button_width)/2;
     button_pos.y = static_cast<float>(window_height)/2 - static_cast<float>(button_height)/2;
 
-    Button button1{button_pos, button_width, button_height, RED};
+    GUI_manager.button_list.emplace_back(button_pos, button_width, button_height, RED);
     Slider slider_entity{Vector2{button_pos.x, button_pos.y + 100}, Vector2{button_pos.x + button_width, button_pos.y +100}, Vector2{button_pos.x, button_pos.y + 100}, 8, BLUE, RAYWHITE};
 
     Vector2 mouse_pos;
@@ -287,11 +302,12 @@ int main(){
         if(IsKeyDown(KEY_LEFT_CONTROL) && IsKeyPressed(KEY_W)){
             GUI_manager.instantiate_textbox(mouse_pos);
         }
+
+        GUI_manager.update_all(mouse_pos);
         
         BeginDrawing();
             ClearBackground(BLACK);
-            GUI_manager.draw_all(mouse_pos);
-            button1.draw();
+            GUI_manager.draw_all();
             slider_entity.draw(mouse_pos);
         EndDrawing();
     }
