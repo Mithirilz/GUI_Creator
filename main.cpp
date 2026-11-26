@@ -1,12 +1,15 @@
 #include <raylib.h>
 #include <string>
 #include <vector>
+#include <iostream>
 
 enum Click_States{
     no_click = 0,
     left_click = 1,
     right_click = 2,
-    key_click = 3
+    left_click_hold = 3,
+    right_click_hold = 4,
+    key_click = 5
 };
 
 struct Button{
@@ -36,7 +39,7 @@ struct Button{
         }
     }
 
-    void update(const Vector2& mouse_pos, Click_States click_type){
+    void update(const Vector2& mouse_pos, const Click_States& click_type){
         if(click_type == left_click){
             colour = GREEN;
             return;
@@ -44,6 +47,7 @@ struct Button{
 
         if(click_type == right_click){
             drag_behaviour(mouse_pos);
+            return;
         }
         
 
@@ -78,6 +82,8 @@ struct Textbox{
     void update(const Click_States& click_type, const int key_pressed){
         if(!is_typing){
             if(click_type == left_click){
+                std::cout << "text update is active" << std::endl;
+
                 is_typing = true;
                 box_colour = Fade(RAYWHITE, 0.5f);
             }
@@ -93,10 +99,15 @@ struct Textbox{
             flicker_colour = ColorAlpha(WHITE, 1 - flicker_brightness);
 
             if(click_type == left_click){
+                std::cout << "text update is not active" << std::endl;
+
                 is_typing = false;
                 box_colour = RAYWHITE;
                 flicker_colour = ColorAlpha(WHITE, 0);
-            } else if(key_pressed != 0){
+                return;
+            }
+            
+            if(key_pressed != 0){
                 text.push_back(static_cast<char>(key_pressed));
             } else if(IsKeyPressed(KEY_BACKSPACE) && !text.empty()){
                 text.pop_back();
@@ -200,7 +211,17 @@ struct GUI{
         textbox_list.emplace_back(mouse_pos, 100, 50, RAYWHITE, ORANGE);
     }
 
-    void check_for_collisions(const Vector2& mouse_pos, const Click_States& click_type){
+    void check_for_collisions(const Vector2& mouse_pos, const Click_States& click_type, const int& key_input){
+        if(click_type == key_click){
+            for(int i = 0; i < textbox_list.size(); i++){
+                Textbox& current_text_box = textbox_list[i];
+
+                if(current_text_box.is_typing){
+                    current_text_box.update(key_click, key_input);
+                }
+            }
+        }
+
         for(int i = 0; i < button_list.size(); i++){
             Button& current_button = button_list[i];
 
@@ -238,6 +259,7 @@ struct GUI{
             }
             
             if(current_text_box.is_typing){
+                std::cout << "Upper level is typing" << std::endl;
                 current_text_box.update(key_click, GetCharPressed());
                 return;
             }
@@ -246,14 +268,20 @@ struct GUI{
 
     void update_all(const Vector2& mouse_pos){
         if(IsMouseButtonDown(MOUSE_BUTTON_LEFT)){
-            check_for_collisions(mouse_pos, left_click);
+            check_for_collisions(mouse_pos, left_click, 0);
             return;
         }
         
         if(IsMouseButtonDown(MOUSE_BUTTON_RIGHT)){
-            check_for_collisions(mouse_pos, right_click);
+            check_for_collisions(mouse_pos, right_click, 0);
             return;
         } 
+
+        const int key_pressed = GetCharPressed();
+        if(key_pressed != 0){
+            check_for_collisions(mouse_pos, key_click, key_pressed);
+            return;
+        }
     }
 
     void draw_all(){
